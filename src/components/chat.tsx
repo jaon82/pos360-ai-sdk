@@ -4,8 +4,10 @@ import { useChat } from "@ai-sdk/react";
 import { Bot, User2 } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { ChatScrollToBottomButton } from "./chat-scroll-to-bottom-button";
+import { GithubProfile } from "./github-profile";
 import { Markdown } from "./markdown";
 import { MessageInput } from "./message-input";
+import { ToolLoading } from "./tool-loading";
 
 export function Chat() {
   const { messages, input, handleInputChange, handleSubmit, status } = useChat({
@@ -54,9 +56,46 @@ export function Chat() {
               )}
 
               <div className="flex flex-col gap-4">
-                <div className="flex-1 prose prose-invert prose-zinc prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-h4:text-base prose-h5:text-sm prose-h6:text-xs">
-                  <Markdown>{message.content}</Markdown>
-                </div>
+                {message.content && (
+                  <div className="flex-1 prose prose-invert prose-zinc prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-h4:text-base prose-h5:text-sm prose-h6:text-xs">
+                    <Markdown>{message.content}</Markdown>
+                  </div>
+                )}
+
+                {message.parts.map((part) => {
+                  if (part.type !== "tool-invocation") {
+                    return null;
+                  }
+                  if (part.toolInvocation.state === "call") {
+                    switch (part.toolInvocation.toolName) {
+                      case "githubProfile":
+                        return (
+                          <ToolLoading
+                            key={part.toolInvocation.toolCallId}
+                            text="Carregando informações do GitHub..."
+                          />
+                        );
+                      case "httpFetch":
+                        return (
+                          <ToolLoading
+                            key={part.toolInvocation.toolCallId}
+                            text="Realizando requisição HTTP..."
+                          />
+                        );
+                    }
+                  }
+                  if (part.toolInvocation.state === "result") {
+                    switch (part.toolInvocation.toolName) {
+                      case "githubProfile":
+                        return (
+                          <GithubProfile
+                            key={part.toolInvocation.toolCallId}
+                            user={part.toolInvocation.result}
+                          />
+                        );
+                    }
+                  }
+                })}
               </div>
             </div>
           ))}
